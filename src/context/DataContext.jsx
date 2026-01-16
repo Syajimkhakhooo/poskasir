@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from './AuthContext';
+import { productService } from '../services/productService';
+import { transactionService } from '../services/transactionService';
+import { financeService } from '../services/financeService';
+import { stockOpnameService } from '../services/stockOpnameService';
 
 const DataContext = createContext();
 
@@ -12,118 +15,136 @@ export const useData = () => {
 };
 
 export const DataProvider = ({ children }) => {
-    const { currentUser } = useAuth();
     const [products, setProducts] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [finances, setFinances] = useState([]);
     const [stockOpnames, setStockOpnames] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Load user-specific data
+    // Load all data from API
     useEffect(() => {
-        if (currentUser) {
-            const userDataKey = `userData_${currentUser.id}`;
-            const savedData = localStorage.getItem(userDataKey);
+        loadAllData();
+    }, []);
 
-            if (savedData) {
-                const data = JSON.parse(savedData);
-                setProducts(data.products || []);
-                setTransactions(data.transactions || []);
-                setFinances(data.finances || []);
-                setStockOpnames(data.stockOpnames || []);
-            } else {
-                // Initialize with empty data
-                setProducts([]);
-                setTransactions([]);
-                setFinances([]);
-                setStockOpnames([]);
-            }
-        }
-    }, [currentUser]);
+    const loadAllData = async () => {
+        try {
+            setLoading(true);
+            const [productsData, transactionsData, financesData, stockOpnamesData] = await Promise.all([
+                productService.getAll(),
+                transactionService.getAll(),
+                financeService.getAll(),
+                stockOpnameService.getAll(),
+            ]);
 
-    // Save data whenever it changes
-    useEffect(() => {
-        if (currentUser) {
-            const userDataKey = `userData_${currentUser.id}`;
-            const data = {
-                products,
-                transactions,
-                finances,
-                stockOpnames,
-            };
-            localStorage.setItem(userDataKey, JSON.stringify(data));
+            setProducts(productsData);
+            setTransactions(transactionsData);
+            setFinances(financesData);
+            setStockOpnames(stockOpnamesData);
+        } catch (error) {
+            console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
         }
-    }, [products, transactions, finances, stockOpnames, currentUser]);
+    };
 
     // Product functions
-    const addProduct = (product) => {
-        const newProduct = {
-            id: Date.now().toString(),
-            ...product,
-            createdAt: new Date().toISOString(),
-        };
-        setProducts(prev => [...prev, newProduct]);
-        return newProduct;
+    const addProduct = async (product) => {
+        try {
+            const newProduct = await productService.create(product);
+            setProducts(prev => [newProduct, ...prev]);
+            return newProduct;
+        } catch (error) {
+            console.error('Error adding product:', error);
+            throw error;
+        }
     };
 
-    const updateProduct = (id, updates) => {
-        setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    const updateProduct = async (id, updates) => {
+        try {
+            const updatedProduct = await productService.update(id, updates);
+            setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
+            return updatedProduct;
+        } catch (error) {
+            console.error('Error updating product:', error);
+            throw error;
+        }
     };
 
-    const deleteProduct = (id) => {
-        setProducts(prev => prev.filter(p => p.id !== id));
+    const deleteProduct = async (id) => {
+        try {
+            await productService.delete(id);
+            setProducts(prev => prev.filter(p => p.id !== id));
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            throw error;
+        }
     };
 
     // Transaction functions
-    const addTransaction = (transaction) => {
-        const newTransaction = {
-            id: Date.now().toString(),
-            ...transaction,
-            createdAt: new Date().toISOString(),
-        };
-        setTransactions(prev => [...prev, newTransaction]);
+    const addTransaction = async (transaction) => {
+        try {
+            const newTransaction = await transactionService.create(transaction);
+            setTransactions(prev => [newTransaction, ...prev]);
 
-        // Update product stock
-        transaction.items.forEach(item => {
-            updateProduct(item.productId, {
-                stock: products.find(p => p.id === item.productId).stock - item.quantity
-            });
-        });
+            // Reload products to get updated stock
+            const updatedProducts = await productService.getAll();
+            setProducts(updatedProducts);
 
-        return newTransaction;
+            return newTransaction;
+        } catch (error) {
+            console.error('Error adding transaction:', error);
+            throw error;
+        }
     };
 
     // Finance functions
-    const addFinance = (finance) => {
-        const newFinance = {
-            id: Date.now().toString(),
-            ...finance,
-            createdAt: new Date().toISOString(),
-        };
-        setFinances(prev => [...prev, newFinance]);
-        return newFinance;
+    const addFinance = async (finance) => {
+        try {
+            const newFinance = await financeService.create(finance);
+            setFinances(prev => [newFinance, ...prev]);
+            return newFinance;
+        } catch (error) {
+            console.error('Error adding finance:', error);
+            throw error;
+        }
     };
 
-    const updateFinance = (id, updates) => {
-        setFinances(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    const updateFinance = async (id, updates) => {
+        try {
+            const updatedFinance = await financeService.update(id, updates);
+            setFinances(prev => prev.map(f => f.id === id ? updatedFinance : f));
+            return updatedFinance;
+        } catch (error) {
+            console.error('Error updating finance:', error);
+            throw error;
+        }
     };
 
-    const deleteFinance = (id) => {
-        setFinances(prev => prev.filter(f => f.id !== id));
+    const deleteFinance = async (id) => {
+        try {
+            await financeService.delete(id);
+            setFinances(prev => prev.filter(f => f.id !== id));
+        } catch (error) {
+            console.error('Error deleting finance:', error);
+            throw error;
+        }
     };
 
     // Stock Opname functions
-    const addStockOpname = (opname) => {
-        const newOpname = {
-            id: Date.now().toString(),
-            ...opname,
-            createdAt: new Date().toISOString(),
-        };
-        setStockOpnames(prev => [...prev, newOpname]);
+    const addStockOpname = async (opname) => {
+        try {
+            const newOpname = await stockOpnameService.create(opname);
+            setStockOpnames(prev => [newOpname, ...prev]);
 
-        // Update product stock
-        updateProduct(opname.productId, { stock: opname.actualStock });
+            // Reload products to get updated stock
+            const updatedProducts = await productService.getAll();
+            setProducts(updatedProducts);
 
-        return newOpname;
+            return newOpname;
+        } catch (error) {
+            console.error('Error adding stock opname:', error);
+            throw error;
+        }
     };
 
     const value = {
@@ -131,6 +152,7 @@ export const DataProvider = ({ children }) => {
         transactions,
         finances,
         stockOpnames,
+        loading,
         addProduct,
         updateProduct,
         deleteProduct,
