@@ -4,11 +4,9 @@ import Button from './Button';
 import PrintAnimation from './PrintAnimation';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { generateReceiptPDF } from '../utils/pdfGenerator';
-import { useAuth } from '../context/AuthContext';
 import { Printer, Download } from 'lucide-react';
 
 const ReceiptModal = ({ isOpen, onClose, transaction }) => {
-    const { currentUser } = useAuth();
     const [isPrinting, setIsPrinting] = useState(false);
     const [settings, setSettings] = useState({ storeName: '', receiptFooter: '' });
 
@@ -29,7 +27,7 @@ const ReceiptModal = ({ isOpen, onClose, transaction }) => {
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Generate PDF
-        generateReceiptPDF(transaction, settings.storeName || currentUser.name, settings.receiptFooter);
+        generateReceiptPDF(transaction, settings.storeName || 'Kasir POS', settings.receiptFooter);
 
         setIsPrinting(false);
     };
@@ -48,7 +46,7 @@ const ReceiptModal = ({ isOpen, onClose, transaction }) => {
                                 STRUK PEMBAYARAN
                             </h2>
                             <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                                {settings.storeName || currentUser.name}
+                                {settings.storeName || 'Kasir POS'}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                 {formatDateTime(transaction.createdAt)}
