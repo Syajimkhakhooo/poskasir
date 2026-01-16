@@ -30,18 +30,23 @@ export const DataProvider = ({ children }) => {
         try {
             setLoading(true);
             const [productsData, transactionsData, financesData, stockOpnamesData] = await Promise.all([
-                productService.getAll(),
-                transactionService.getAll(),
-                financeService.getAll(),
-                stockOpnameService.getAll(),
+                productService.getAll().catch(err => { console.error('Products error:', err); return []; }),
+                transactionService.getAll().catch(err => { console.error('Transactions error:', err); return []; }),
+                financeService.getAll().catch(err => { console.error('Finances error:', err); return []; }),
+                stockOpnameService.getAll().catch(err => { console.error('Stock opnames error:', err); return []; }),
             ]);
 
-            setProducts(productsData);
-            setTransactions(transactionsData);
-            setFinances(financesData);
-            setStockOpnames(stockOpnamesData);
+            setProducts(Array.isArray(productsData) ? productsData : []);
+            setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
+            setFinances(Array.isArray(financesData) ? financesData : []);
+            setStockOpnames(Array.isArray(stockOpnamesData) ? stockOpnamesData : []);
         } catch (error) {
             console.error('Error loading data:', error);
+            // Set empty arrays as fallback
+            setProducts([]);
+            setTransactions([]);
+            setFinances([]);
+            setStockOpnames([]);
         } finally {
             setLoading(false);
         }
@@ -51,7 +56,7 @@ export const DataProvider = ({ children }) => {
     const addProduct = async (product) => {
         try {
             const newProduct = await productService.create(product);
-            setProducts(prev => [newProduct, ...prev]);
+            setProducts([...products, newProduct]);
             return newProduct;
         } catch (error) {
             console.error('Error adding product:', error);
@@ -61,9 +66,9 @@ export const DataProvider = ({ children }) => {
 
     const updateProduct = async (id, updates) => {
         try {
-            const updatedProduct = await productService.update(id, updates);
-            setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
-            return updatedProduct;
+            const updated = await productService.update(id, updates);
+            setProducts(products.map(p => p.id === id ? updated : p));
+            return updated;
         } catch (error) {
             console.error('Error updating product:', error);
             throw error;
@@ -73,7 +78,7 @@ export const DataProvider = ({ children }) => {
     const deleteProduct = async (id) => {
         try {
             await productService.delete(id);
-            setProducts(prev => prev.filter(p => p.id !== id));
+            setProducts(products.filter(p => p.id !== id));
         } catch (error) {
             console.error('Error deleting product:', error);
             throw error;
@@ -84,12 +89,9 @@ export const DataProvider = ({ children }) => {
     const addTransaction = async (transaction) => {
         try {
             const newTransaction = await transactionService.create(transaction);
-            setTransactions(prev => [newTransaction, ...prev]);
-
+            setTransactions([newTransaction, ...transactions]);
             // Reload products to get updated stock
-            const updatedProducts = await productService.getAll();
-            setProducts(updatedProducts);
-
+            await loadAllData();
             return newTransaction;
         } catch (error) {
             console.error('Error adding transaction:', error);
@@ -101,7 +103,7 @@ export const DataProvider = ({ children }) => {
     const addFinance = async (finance) => {
         try {
             const newFinance = await financeService.create(finance);
-            setFinances(prev => [newFinance, ...prev]);
+            setFinances([newFinance, ...finances]);
             return newFinance;
         } catch (error) {
             console.error('Error adding finance:', error);
@@ -111,9 +113,9 @@ export const DataProvider = ({ children }) => {
 
     const updateFinance = async (id, updates) => {
         try {
-            const updatedFinance = await financeService.update(id, updates);
-            setFinances(prev => prev.map(f => f.id === id ? updatedFinance : f));
-            return updatedFinance;
+            const updated = await financeService.update(id, updates);
+            setFinances(finances.map(f => f.id === id ? updated : f));
+            return updated;
         } catch (error) {
             console.error('Error updating finance:', error);
             throw error;
@@ -123,7 +125,7 @@ export const DataProvider = ({ children }) => {
     const deleteFinance = async (id) => {
         try {
             await financeService.delete(id);
-            setFinances(prev => prev.filter(f => f.id !== id));
+            setFinances(finances.filter(f => f.id !== id));
         } catch (error) {
             console.error('Error deleting finance:', error);
             throw error;
@@ -134,12 +136,9 @@ export const DataProvider = ({ children }) => {
     const addStockOpname = async (opname) => {
         try {
             const newOpname = await stockOpnameService.create(opname);
-            setStockOpnames(prev => [newOpname, ...prev]);
-
+            setStockOpnames([newOpname, ...stockOpnames]);
             // Reload products to get updated stock
-            const updatedProducts = await productService.getAll();
-            setProducts(updatedProducts);
-
+            await loadAllData();
             return newOpname;
         } catch (error) {
             console.error('Error adding stock opname:', error);
@@ -161,6 +160,7 @@ export const DataProvider = ({ children }) => {
         updateFinance,
         deleteFinance,
         addStockOpname,
+        refreshData: loadAllData,
     };
 
     return (
