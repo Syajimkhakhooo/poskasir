@@ -21,6 +21,10 @@ app.get('/', (req, res) => {
     res.json({ message: 'Kasir POS API is running!' });
 });
 
+app.get('/api', (req, res) => {
+    res.json({ message: 'Kasir POS API is running!' });
+});
+
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/finances', financeRoutes);
@@ -29,8 +33,11 @@ app.use('/api/stock-opnames', stockOpnameRoutes);
 // Error handler (must be last)
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+// For Vercel serverless
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+    });
+}
 
 module.exports = app;
