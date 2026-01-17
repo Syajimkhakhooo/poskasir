@@ -26,10 +26,10 @@ exports.getProductById = async (req, res, next) => {
 // Create product
 exports.createProduct = async (req, res, next) => {
     try {
-        const { name, price, stock, category } = req.body;
+        const { name, sku, price, stock, minStock, category, description } = req.body;
         const result = await db.query(
-            'INSERT INTO products (name, price, stock, category) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, price, stock || 0, category]
+            'INSERT INTO products (name, sku, price, stock, min_stock, category, description) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [name, sku || null, price, stock || 0, minStock || 10, category || null, description || null]
         );
 
         res.status(201).json({ success: true, data: result.rows[0] });
@@ -41,10 +41,10 @@ exports.createProduct = async (req, res, next) => {
 // Update product
 exports.updateProduct = async (req, res, next) => {
     try {
-        const { name, price, stock, category } = req.body;
+        const { name, sku, price, stock, minStock, category, description } = req.body;
         const result = await db.query(
-            'UPDATE products SET name = $1, price = $2, stock = $3, category = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *',
-            [name, price, stock, category, req.params.id]
+            'UPDATE products SET name = $1, sku = $2, price = $3, stock = $4, min_stock = $5, category = $6, description = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8 RETURNING *',
+            [name, sku || null, price, stock, minStock || 10, category || null, description || null, req.params.id]
         );
 
         if (result.rows.length === 0) {

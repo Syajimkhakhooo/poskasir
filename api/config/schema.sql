@@ -1,5 +1,6 @@
 -- Kasir POS Database Schema (PostgreSQL)
 -- For Supabase or local PostgreSQL
+-- VERSI LENGKAP - Sudah termasuk sku, min_stock, description
 
 -- Drop tables if exist (for clean install)
 DROP TABLE IF EXISTS transaction_items CASCADE;
@@ -12,9 +13,12 @@ DROP TABLE IF EXISTS products CASCADE;
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100),
     price DECIMAL(10, 2) NOT NULL,
     stock INTEGER NOT NULL DEFAULT 0,
+    min_stock INTEGER DEFAULT 10,
     category VARCHAR(100),
+    description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -71,7 +75,7 @@ CREATE INDEX idx_stock_opnames_product_id ON stock_opnames(product_id);
 CREATE INDEX idx_stock_opnames_created_at ON stock_opnames(created_at);
 
 -- Insert sample data
-INSERT INTO products (name, price, stock, category) VALUES
-('Kopi Hitam', 15000, 50, 'Minuman'),
-('Nasi Goreng', 25000, 30, 'Makanan'),
-('Teh Manis', 10000, 40, 'Minuman');
+INSERT INTO products (name, sku, price, stock, min_stock, category, description) VALUES
+('Kopi Hitam', 'PRD-001', 15000, 50, 10, 'Minuman', 'Kopi hitam original'),
+('Nasi Goreng', 'PRD-002', 25000, 30, 10, 'Makanan', 'Nasi goreng spesial'),
+('Teh Manis', 'PRD-003', 10000, 40, 10, 'Minuman', 'Teh manis segar');
